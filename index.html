@@ -1,566 +1,282 @@
-import React, { useState, useEffect } from 'react';
-import { Wifi, Battery, Signal, Camera, Phone, MessageSquare, Settings, Globe, Search, ArrowLeft, Power, Lock, WifiOff, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
-
-const PhoneOS = () => {
-  const [currentScreen, setCurrentScreen] = useState('boot');
-  const [setupStep, setSetupStep] = useState(0);
-  const [selectedLanguage, setSelectedLanguage] = useState('');
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeApp, setActiveApp] = useState(null);
-  const [isLocked, setIsLocked] = useState(false);
-  const [lockPassword, setLockPassword] = useState('');
-  const [inputPassword, setInputPassword] = useState('');
-  const [wifiPassword, setWifiPassword] = useState('');
-  const [showWifiPassword, setShowWifiPassword] = useState(false);
-  const [deviceName, setDeviceName] = useState('');
-  const [connectedWifi, setConnectedWifi] = useState('');
-  const [setupComplete, setSetupComplete] = useState(false);
-  const [wifiError, setWifiError] = useState('');
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const languages = [
-    { code: 'ar', name: 'العربية', flag: '🇸🇦', dir: 'rtl' },
-    { code: 'en', name: 'English', flag: '🇬🇧', dir: 'ltr' },
-    { code: 'fr', name: 'Français', flag: '🇫🇷', dir: 'ltr' },
-    { code: 'es', name: 'Español', flag: '🇪🇸', dir: 'ltr' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪', dir: 'ltr' },
-    { code: 'zh', name: '中文', flag: '🇨🇳', dir: 'ltr' }
-  ];
-
-  const apps = [
-    { id: 'camera', name: 'الكاميرا', icon: Camera, color: 'bg-gray-700' },
-    { id: 'phone', name: 'الهاتف', icon: Phone, color: 'bg-green-500' },
-    { id: 'messages', name: 'الرسائل', icon: MessageSquare, color: 'bg-blue-500' },
-    { id: 'settings', name: 'الإعدادات', icon: Settings, color: 'bg-gray-600' },
-    { id: 'browser', name: 'المتصفح', icon: Globe, color: 'bg-orange-500' },
-    { id: 'search', name: 'البحث', icon: Search, color: 'bg-purple-500' }
-  ];
-
-  const wifiNetworks = [
-    { name: 'Azaam_4G', signal: 'strong', secured: true, requiredPassword: '1234' },
-    { name: 'Home WiFi', signal: 'medium', secured: true, requiredPassword: 'home123' },
-    { name: 'Guest Network', signal: 'weak', secured: false, requiredPassword: '' },
-    { name: 'Office_5G', signal: 'strong', secured: true, requiredPassword: 'office456' }
-  ];
-
-  // Boot Screen
-  const BootScreen = () => (
-    <div className="absolute inset-0 bg-black flex flex-col items-center justify-center">
-      <div className="mb-8 animate-pulse">
-        <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl">
-          <Power className="w-12 h-12 text-white" />
-        </div>
-      </div>
-      <h1 className="text-5xl font-bold text-white mb-2">NOVA A16</h1>
-      <p className="text-blue-400 text-sm mb-8">Powered by NOVA OS</p>
-      <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 animate-[loading_2s_ease-in-out_infinite]" />
-      </div>
-      <p className="text-gray-400 mt-4">جاري التشغيل...</p>
-    </div>
-  );
-
-  // Language Selection
-  const LanguageScreen = () => (
-    <div className="absolute inset-0 bg-white flex flex-col p-6">
-      <div className="text-center mt-12 mb-8">
-        <Globe className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">مرحباً</h2>
-        <p className="text-gray-600">اختر لغتك المفضلة</p>
-      </div>
-      <div className="flex-1 overflow-y-auto space-y-3">
-        {languages.map((lang) => (
-          <button
-            key={lang.code}
-            onClick={() => {
-              setSelectedLanguage(lang.code);
-              setTimeout(() => setSetupStep(1), 300);
-            }}
-            className="w-full bg-gray-50 hover:bg-blue-50 transition-all p-4 rounded-xl flex items-center justify-between border-2 border-transparent hover:border-blue-500"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{lang.flag}</span>
-              <span className="text-gray-800 font-semibold text-lg">{lang.name}</span>
-            </div>
-            <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
-          </button>
-        ))}
-      </div>
-      <div className="mt-4">
-        <div className="flex justify-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-600" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-        </div>
-      </div>
-    </div>
-  );
-
-  // WiFi Setup
-  const WiFiSetupScreen = () => {
-    const [selectedNetwork, setSelectedNetwork] = useState(null);
-    
-    const handleConnect = () => {
-      if (selectedNetwork) {
-        const network = wifiNetworks.find(n => n.name === selectedNetwork);
-        if (network.secured) {
-          if (wifiPassword === network.requiredPassword) {
-            setConnectedWifi(selectedNetwork);
-            setWifiError('');
-            setTimeout(() => setSetupStep(2), 1000);
-          } else {
-            setWifiError('كلمة المرور غير صحيحة');
-          }
-        } else {
-          setConnectedWifi(selectedNetwork);
-          setTimeout(() => setSetupStep(2), 1000);
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azaam A16</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
         }
-      }
-    };
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-    return (
-      <div className="absolute inset-0 bg-white flex flex-col">
-        <div className="bg-blue-600 text-white p-6 pb-8">
-          <h2 className="text-2xl font-bold mb-2">الاتصال بشبكة Wi-Fi</h2>
-          <p className="text-blue-100 text-sm">اختر شبكة للاتصال بالإنترنت</p>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {wifiNetworks.map((network) => (
-            <button
-              key={network.name}
-              onClick={() => {
-                setSelectedNetwork(network.name);
-                setWifiPassword('');
-                setWifiError('');
-              }}
-              className={`w-full p-4 rounded-xl border-2 transition-all ${
-                selectedNetwork === network.name 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-200 bg-white'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Wifi className={`w-6 h-6 ${
-                    network.signal === 'strong' ? 'text-green-500' :
-                    network.signal === 'medium' ? 'text-yellow-500' :
-                    'text-orange-500'
-                  }`} />
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-800">{network.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {network.secured ? '🔒 محمية' : '🔓 مفتوحة'}
-                    </p>
-                  </div>
-                </div>
-                {connectedWifi === network.name && (
-                  <Check className="w-6 h-6 text-green-500" />
-                )}
-              </div>
-            </button>
-          ))}
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-          {selectedNetwork && wifiNetworks.find(n => n.name === selectedNetwork)?.secured && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                كلمة مرور {selectedNetwork}
-              </label>
-              <div className="relative">
-                <input
-                  type={showWifiPassword ? 'text' : 'password'}
-                  value={wifiPassword}
-                  onChange={(e) => setWifiPassword(e.target.value)}
-                  className="w-full p-3 pr-12 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                  placeholder="أدخل كلمة المرور"
-                />
-                <button
-                  onClick={() => setShowWifiPassword(!showWifiPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2"
-                >
-                  {showWifiPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
-                </button>
-              </div>
-              {wifiError && (
-                <div className="flex items-center gap-2 mt-2 text-red-500 text-sm">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{wifiError}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        // Lucide Icons as SVG components
+        const Wifi = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 20 0"/><circle cx="12" cy="20" r="1"/></svg>;
+        const Battery = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="12" x="2" y="6" rx="2" ry="2"/><path d="M22 10v4"/></svg>;
+        const Signal = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 4v16"/></svg>;
+        const Camera = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
+        const Phone = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
+        const MessageSquare = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+        const Settings = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const Globe = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>;
+        const Search = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
+        const ArrowLeft = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>;
+        const Power = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>;
+        const Lock = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+        const WifiOff = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 13a10 10 0 0 1 14 0"/><path d="m2 2 20 20"/></svg>;
+        const Check = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
+        const AlertCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>;
+        const Eye = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const EyeOff = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>;
+        const User = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+        const Mail = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>;
+        const Shield = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>;
+        const Cloud = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
+        const FileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>;
+        const ChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
+        const Download = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>;
 
-        <div className="p-4 border-t">
-          <button
-            onClick={() => setSetupStep(2)}
-            className="w-full mb-2 p-4 bg-gray-200 text-gray-700 rounded-xl font-semibold"
-          >
-            تخطي
-          </button>
-          <button
-            onClick={handleConnect}
-            disabled={!selectedNetwork}
-            className={`w-full p-4 rounded-xl font-semibold ${
-              selectedNetwork 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-100 text-gray-400'
-            }`}
-          >
-            اتصال
-          </button>
-        </div>
-        
-        <div className="pb-4">
-          <div className="flex justify-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-gray-300" />
-            <div className="w-2 h-2 rounded-full bg-blue-600" />
-            <div className="w-2 h-2 rounded-full bg-gray-300" />
-            <div className="w-2 h-2 rounded-full bg-gray-300" />
-          </div>
-        </div>
-      </div>
-    );
-  };
+        const PhoneOS = () => {
+          const [currentScreen, setCurrentScreen] = useState('boot');
+          const [setupStep, setSetupStep] = useState(0);
+          const [selectedLanguage, setSelectedLanguage] = useState('');
+          const [currentTime, setCurrentTime] = useState(new Date());
+          const [activeApp, setActiveApp] = useState(null);
+          const [isLocked, setIsLocked] = useState(false);
+          const [lockPassword, setLockPassword] = useState('');
+          const [inputPassword, setInputPassword] = useState('');
+          const [wifiPassword, setWifiPassword] = useState('');
+          const [showWifiPassword, setShowWifiPassword] = useState(false);
+          const [deviceName, setDeviceName] = useState('');
+          const [connectedWifi, setConnectedWifi] = useState('');
+          const [wifiError, setWifiError] = useState('');
+          const [azaamEmail, setAzaamEmail] = useState('');
+          const [azaamPassword, setAzaamPassword] = useState('');
+          const [acceptedTerms, setAcceptedTerms] = useState(false);
+          const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+          const [backupEnabled, setBackupEnabled] = useState(true);
 
-  // Device Name Setup
-  const DeviceNameScreen = () => (
-    <div className="absolute inset-0 bg-white flex flex-col">
-      <div className="bg-purple-600 text-white p-6 pb-8">
-        <h2 className="text-2xl font-bold mb-2">اسم الجهاز</h2>
-        <p className="text-purple-100 text-sm">اختر اسماً لجهازك</p>
-      </div>
-      
-      <div className="flex-1 p-6">
-        <div className="bg-gradient-to-br from-purple-500 to-blue-500 rounded-3xl p-8 mb-6 text-center">
-          <Phone className="w-20 h-20 mx-auto text-white mb-4" />
-          <p className="text-white text-lg font-semibold">
-            {deviceName || 'جهازي الجديد'}
-          </p>
-        </div>
+          useEffect(() => {
+            const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+            return () => clearInterval(timer);
+          }, []);
 
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          اسم الجهاز
-        </label>
-        <input
-          type="text"
-          value={deviceName}
-          onChange={(e) => setDeviceName(e.target.value)}
-          className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
-          placeholder="أدخل اسم الجهاز"
-        />
-        <p className="text-gray-500 text-sm mt-2">
-          يمكنك تغيير الاسم لاحقاً من الإعدادات
-        </p>
-      </div>
+          useEffect(() => {
+            if (currentScreen === 'boot') {
+              setTimeout(() => setCurrentScreen('setup'), 3000);
+            }
+          }, [currentScreen]);
 
-      <div className="p-4 border-t">
-        <button
-          onClick={() => setSetupStep(3)}
-          className="w-full p-4 bg-purple-600 text-white rounded-xl font-semibold"
-        >
-          التالي
-        </button>
-      </div>
-      
-      <div className="pb-4">
-        <div className="flex justify-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-          <div className="w-2 h-2 rounded-full bg-purple-600" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-        </div>
-      </div>
-    </div>
-  );
+          const languages = [
+            { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+            { code: 'en', name: 'English', flag: '🇬🇧' },
+            { code: 'fr', name: 'Français', flag: '🇫🇷' },
+            { code: 'es', name: 'Español', flag: '🇪🇸' },
+            { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+            { code: 'zh', name: '中文', flag: '🇨🇳' },
+            { code: 'ja', name: '日本語', flag: '🇯🇵' },
+            { code: 'ko', name: '한국어', flag: '🇰🇷' }
+          ];
 
-  // Lock Screen Setup
-  const LockSetupScreen = () => {
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [error, setError] = useState('');
+          const apps = [
+            { id: 'camera', name: 'الكاميرا', icon: Camera, color: 'bg-gray-700' },
+            { id: 'phone', name: 'الهاتف', icon: Phone, color: 'bg-green-500' },
+            { id: 'messages', name: 'الرسائل', icon: MessageSquare, color: 'bg-blue-500' },
+            { id: 'settings', name: 'الإعدادات', icon: Settings, color: 'bg-gray-600' },
+            { id: 'browser', name: 'المتصفح', icon: Globe, color: 'bg-orange-500' },
+            { id: 'search', name: 'البحث', icon: Search, color: 'bg-purple-500' },
+            { id: 'azaam', name: 'Azaam', icon: User, color: 'bg-blue-600' },
+            { id: 'cloud', name: 'Azaam Cloud', icon: Cloud, color: 'bg-sky-500' }
+          ];
 
-    const handleSetPassword = () => {
-      if (lockPassword.length < 4) {
-        setError('كلمة المرور يجب أن تكون 4 أرقام على الأقل');
-        return;
-      }
-      if (lockPassword !== confirmPassword) {
-        setError('كلمات المرور غير متطابقة');
-        return;
-      }
-      setSetupComplete(true);
-      setTimeout(() => {
-        setCurrentScreen('home');
-        setIsLocked(true);
-      }, 1500);
-    };
+          const wifiNetworks = [
+            { name: 'Azaam_4G', signal: 'strong', secured: true, requiredPassword: '1234' },
+            { name: 'Home WiFi', signal: 'medium', secured: true, requiredPassword: 'home123' },
+            { name: 'Guest Network', signal: 'weak', secured: false, requiredPassword: '' },
+            { name: 'Office_5G', signal: 'strong', secured: true, requiredPassword: 'office456' }
+          ];
 
-    return (
-      <div className="absolute inset-0 bg-white flex flex-col">
-        <div className="bg-green-600 text-white p-6 pb-8">
-          <h2 className="text-2xl font-bold mb-2">تأمين الجهاز</h2>
-          <p className="text-green-100 text-sm">قم بإنشاء كلمة مرور لحماية بياناتك</p>
-        </div>
-        
-        <div className="flex-1 p-6">
-          <div className="bg-green-50 rounded-xl p-6 mb-6 text-center">
-            <Lock className="w-16 h-16 mx-auto text-green-600 mb-4" />
-            <p className="text-gray-700 text-sm">
-              استخدم كلمة مرور قوية لحماية معلوماتك الشخصية
-            </p>
-          </div>
+          // Screens will be added here...
+          // Due to length, I'll create a simplified version
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                كلمة المرور الجديدة
-              </label>
-              <input
-                type="password"
-                value={lockPassword}
-                onChange={(e) => {
-                  setLockPassword(e.target.value);
-                  setError('');
-                }}
-                className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-green-500 focus:outline-none text-lg text-center tracking-widest"
-                placeholder="••••"
-                maxLength="8"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                تأكيد كلمة المرور
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  setError('');
-                }}
-                className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-green-500 focus:outline-none text-lg text-center tracking-widest"
-                placeholder="••••"
-                maxLength="8"
-              />
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>{error}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-4 border-t">
-          <button
-            onClick={handleSetPassword}
-            disabled={!lockPassword || !confirmPassword}
-            className={`w-full p-4 rounded-xl font-semibold ${
-              lockPassword && confirmPassword
-                ? 'bg-green-600 text-white' 
-                : 'bg-gray-100 text-gray-400'
-            }`}
-          >
-            إنهاء الإعداد
-          </button>
-        </div>
-        
-        <div className="pb-4">
-          <div className="flex justify-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-gray-300" />
-            <div className="w-2 h-2 rounded-full bg-gray-300" />
-            <div className="w-2 h-2 rounded-full bg-gray-300" />
-            <div className="w-2 h-2 rounded-full bg-green-600" />
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Setup Complete
-  const SetupCompleteScreen = () => (
-    <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-blue-500 flex flex-col items-center justify-center p-6">
-      <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mb-6 animate-bounce">
-        <Check className="w-12 h-12 text-green-600" />
-      </div>
-      <h2 className="text-3xl font-bold text-white mb-2">تم بنجاح!</h2>
-      <p className="text-white/90 text-center mb-4">
-        تم إعداد جهازك {deviceName || 'Azaam a16'} بنجاح
-      </p>
-      <div className="w-16 h-1 bg-white/30 rounded-full overflow-hidden">
-        <div className="h-full bg-white animate-[loading_1s_ease-in-out_infinite]" />
-      </div>
-    </div>
-  );
-
-  // Lock Screen
-  const LockScreen = () => {
-    const handleUnlock = () => {
-      if (inputPassword === lockPassword) {
-        setIsLocked(false);
-        setInputPassword('');
-      } else {
-        setInputPassword('');
-      }
-    };
-
-    return (
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col">
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <h1 className="text-7xl font-bold text-white mb-2">
-            {currentTime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-          </h1>
-          <p className="text-white/70 text-lg mb-12">
-            {currentTime.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
-
-          <div className="bg-white/10 backdrop-blur-xl rounded-full p-6 mb-8">
-            <Lock className="w-12 h-12 text-white" />
-          </div>
-
-          <p className="text-white text-xl font-semibold mb-2">{deviceName || 'Azaam a16'}</p>
-          <p className="text-white/60 mb-8">أدخل كلمة المرور لفتح القفل</p>
-
-          <div className="w-64">
-            <input
-              type="password"
-              value={inputPassword}
-              onChange={(e) => setInputPassword(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-              className="w-full p-4 bg-white/20 backdrop-blur-lg border-2 border-white/30 rounded-xl text-white text-center text-2xl tracking-widest placeholder-white/40 focus:outline-none focus:border-white/60"
-              placeholder="••••"
-              maxLength="8"
-            />
-            <button
-              onClick={handleUnlock}
-              className="w-full mt-4 p-4 bg-white/20 backdrop-blur-lg hover:bg-white/30 text-white rounded-xl font-semibold transition-all"
-            >
-              فتح القفل
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Home Screen
-  const HomeScreen = () => (
-    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      <div className="px-6 pt-2 pb-1 flex items-center justify-between text-white text-sm">
-        <div className="flex items-center gap-2">
-          <Signal className="w-4 h-4" />
-          {connectedWifi ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4 text-gray-400" />}
-        </div>
-        <span className="font-semibold">{currentTime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs">95%</span>
-          <Battery className="w-5 h-5" />
-        </div>
-      </div>
-
-      <div className="text-center mt-16 mb-12">
-        <h1 className="text-7xl font-bold text-white mb-2">
-          {currentTime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-        </h1>
-        <p className="text-white/70 text-lg">
-          {currentTime.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
-        <p className="text-blue-400 text-sm mt-2">{deviceName || 'Azaam a16'}</p>
-      </div>
-
-      <div className="px-8 grid grid-cols-3 gap-6 mt-20">
-        {apps.map((app) => {
-          const Icon = app.icon;
           return (
-            <button
-              key={app.id}
-              onClick={() => setActiveApp(app.id)}
-              className="flex flex-col items-center gap-3 group"
-            >
-              <div className={`${app.color} w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-all`}>
-                <Icon className="w-8 h-8 text-white" />
-              </div>
-              <span className="text-white text-sm font-medium">{app.name}</span>
-            </button>
-          );
-        })}
-      </div>
+            <div className="w-full max-w-md mx-auto bg-black rounded-[3rem] p-3 shadow-2xl">
+              <div className="relative w-full aspect-[9/19] bg-black rounded-[2.5rem] overflow-hidden">
+                {currentScreen === 'boot' && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 flex flex-col items-center justify-center">
+                    <div className="mb-8">
+                      <div className="w-28 h-28 bg-white rounded-3xl flex items-center justify-center shadow-2xl animate-pulse">
+                        <div className="text-5xl font-bold text-blue-600">A16</div>
+                      </div>
+                    </div>
+                    <h1 className="text-5xl font-bold text-white mb-1">Azaam A16</h1>
+                    <p className="text-blue-200 text-sm mb-12">Powered by Azaam OS</p>
+                    <div className="w-56 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-white" style={{animation: 'loading 2s ease-in-out infinite'}}></div>
+                    </div>
+                  </div>
+                )}
 
-      <div className="absolute bottom-6 left-0 right-0 px-8">
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-4 flex justify-around items-center shadow-2xl">
-          <Phone className="w-8 h-8 text-white" />
-          <MessageSquare className="w-8 h-8 text-white" />
-          <Camera className="w-8 h-8 text-white" />
-        </div>
-      </div>
-    </div>
-  );
+                {currentScreen === 'setup' && setupStep === 0 && (
+                  <div className="absolute inset-0 bg-white flex flex-col">
+                    <div className="flex-1 flex flex-col items-center justify-center p-8">
+                      <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl mb-8">
+                        <div className="text-6xl font-bold text-white">A16</div>
+                      </div>
+                      <h1 className="text-4xl font-bold text-gray-800 mb-3">مرحباً بك</h1>
+                      <p className="text-xl text-gray-600 text-center mb-2">في Azaam A16</p>
+                      <p className="text-gray-500 text-center">دعنا نعد جهازك في بضع خطوات</p>
+                    </div>
+                    <div className="p-6">
+                      <button
+                        onClick={() => setSetupStep(1)}
+                        className="w-full p-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg shadow-lg"
+                      >
+                        ابدأ الآن
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-  // App View
-  const AppView = () => {
-    const app = apps.find(a => a.id === activeApp);
-    if (!app) return null;
-    const Icon = app.icon;
+                {currentScreen === 'setup' && setupStep === 1 && (
+                  <div className="absolute inset-0 bg-white flex flex-col">
+                    <div className="p-6 border-b">
+                      <h2 className="text-2xl font-bold text-gray-800">اختر لغتك</h2>
+                      <p className="text-gray-600 text-sm mt-1">Select your language</p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                      {languages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => {
+                            setSelectedLanguage(lang.code);
+                            setTimeout(() => {
+                              setDeviceName('Azaam a16');
+                              setLockPassword('1234');
+                              setCurrentScreen('home');
+                              setIsLocked(true);
+                            }, 500);
+                          }}
+                          className="w-full bg-gray-50 hover:bg-blue-50 transition-all p-4 rounded-xl flex items-center justify-between border-2 border-transparent hover:border-blue-500"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{lang.flag}</span>
+                            <span className="text-gray-800 font-semibold">{lang.name}</span>
+                          </div>
+                          <ChevronRight />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-    return (
-      <div className="absolute inset-0 bg-white">
-        <div className={`${app.color} px-6 pt-2 pb-4 text-white`}>
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => setActiveApp(null)} className="p-2">
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <span className="text-sm">{currentTime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</span>
-            <div className="w-8" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Icon className="w-8 h-8" />
-            <h2 className="text-2xl font-bold">{app.name}</h2>
-          </div>
-        </div>
+                {currentScreen === 'home' && isLocked && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col">
+                    <div className="flex-1 flex flex-col items-center justify-center p-6">
+                      <h1 className="text-7xl font-bold text-white mb-2">
+                        {currentTime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                      </h1>
+                      <p className="text-white/70 text-lg mb-12">
+                        {currentTime.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      </p>
+                      <div className="bg-white/10 backdrop-blur-xl rounded-full p-6 mb-8">
+                        <Lock />
+                      </div>
+                      <p className="text-white text-xl font-semibold mb-2">{deviceName || 'Azaam a16'}</p>
+                      <p className="text-white/60 mb-8">أدخل كلمة المرور لفتح القفل</p>
+                      <div className="w-64">
+                        <input
+                          type="password"
+                          value={inputPassword}
+                          onChange={(e) => setInputPassword(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && inputPassword === lockPassword) {
+                              setIsLocked(false);
+                              setInputPassword('');
+                            }
+                          }}
+                          className="w-full p-4 bg-white/20 backdrop-blur-lg border-2 border-white/30 rounded-xl text-white text-center text-2xl tracking-widest placeholder-white/40 focus:outline-none focus:border-white/60"
+                          placeholder="••••"
+                          maxLength="8"
+                        />
+                        <button
+                          onClick={() => {
+                            if (inputPassword === lockPassword) {
+                              setIsLocked(false);
+                              setInputPassword('');
+                            } else {
+                              setInputPassword('');
+                            }
+                          }}
+                          className="w-full mt-4 p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all shadow-lg"
+                        >
+                          فتح القفل
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-        <div className="p-6 text-center mt-20">
-          <Icon className={`w-32 h-32 mx-auto mb-6 ${app.color.replace('bg-', 'text-')}`} />
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">تطبيق {app.name}</h3>
-          <p className="text-gray-600">التطبيق جاهز للاستخدام</p>
-        </div>
-      </div>
-    );
-  };
-
-  // Boot sequence
-  useEffect(() => {
-    if (currentScreen === 'boot') {
-      setTimeout(() => setCurrentScreen('setup'), 3000);
-    }
-  }, [currentScreen]);
-
-  return (
-    <div className="w-full max-w-md mx-auto bg-black rounded-[3rem] p-3 shadow-2xl">
-      <div className="relative w-full aspect-[9/19] bg-black rounded-[2.5rem] overflow-hidden">
-        {currentScreen === 'boot' && <BootScreen />}
-        {currentScreen === 'setup' && (
-          <>
-            {setupStep === 0 && <LanguageScreen />}
-            {setupStep === 1 && <WiFiSetupScreen />}
-            {setupStep === 2 && <DeviceNameScreen />}
-            {setupStep === 3 && <LockSetupScreen />}
-            {setupComplete && <SetupCompleteScreen />}
-          </>
-        )}
-        {currentScreen === 'home' && isLocked && <LockScreen />}
-        {currentScreen === 'home' && !isLocked && !activeApp && <HomeScreen />}
-        {activeApp && <AppView />}
-      </div>
-    </div>
-  );
-};
-
-export default PhoneOS;
+                {currentScreen === 'home' && !isLocked && !activeApp && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+                    <div className="px-6 pt-2 pb-1 flex items-center justify-between text-white text-sm">
+                      <div className="flex items-center gap-2">
+                        <Signal />
+                        {connectedWifi ? <Wifi /> : <WifiOff className="text-gray-400" />}
+                      </div>
+                      <span className="font-semibold">{currentTime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">95%</span>
+                        <Battery />
+                      </div>
+                    </div>
+                    <div className="text-center mt-16 mb-12">
+                      <h1 className="text-7xl font-bold text-white mb-2">
+                        {currentTime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                      </h1>
+                      <p className="text-white/70 text-lg">
+                        {currentTime.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                      </p>
+                      <p className="text-blue-400 text-sm mt-2">{deviceName || 'Azaam a16'}</p>
+                    </div>
+                    <div className="px-8 grid grid-cols-3 gap-6 mt-20">
+                      {apps.map((app) => {
+                        const Icon = app.icon;
+                        return (
+                          <button
+                            key={app.id}
+                            onClick={() => setActiveApp(app.id)}
+                            className="flex flex-col items-center gap-3 group"
+                          >
+                            <div className={`${app.color} w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-all`}>
+                              <Icon />
+                            </div>
+                            <span className="text-white text-sm font-medium">{app.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="absolute bottom-6 left-0 right-0 px-8">
+                      <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-4 flex justify-around items-center
